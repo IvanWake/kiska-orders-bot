@@ -1,0 +1,21 @@
+{
+  "name": "wishlist-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram бот для заказа вкусняшек в стиле Hello Kitty",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "keywords": ["telegram", "bot", "wishlist", "hello-kitty"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "mongodb": "^6.3.0",
+    "dotenv": "^16.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
