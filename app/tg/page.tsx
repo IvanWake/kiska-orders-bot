@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Plus, X, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,11 +59,19 @@ export default function TelegramMiniApp() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [tgUser, setTgUser] = useState<any>(null)
 
-  const orderDataRef = { current: { items: [], comment: "" } }
+  const itemsRef = useRef<string[]>([])
+  const commentRef = useRef<string>("")
+  const orderDataRef = useRef<{ items: string[]; comment: string }>({ items: [], comment: "" })
 
   useEffect(() => {
-    orderDataRef.current = { items, comment }
-  }, [items, comment])
+    itemsRef.current = items
+    orderDataRef.current.items = items
+  }, [items])
+
+  useEffect(() => {
+    commentRef.current = comment
+    orderDataRef.current.comment = comment
+  }, [comment])
 
   useEffect(() => {
     // Initialize Telegram Web App
@@ -83,7 +90,8 @@ export default function TelegramMiniApp() {
       tg.MainButton.hide()
 
       const handleMainButtonClick = async () => {
-        const { items: currentItems, comment: currentComment } = orderDataRef.current
+        const currentItems = itemsRef.current
+        const currentComment = commentRef.current
 
         if (currentItems.length === 0) return
 
@@ -242,7 +250,7 @@ export default function TelegramMiniApp() {
           </div>
 
           <Card className="p-4 border-border bg-card/80 backdrop-blur-sm shadow-2xl">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-5">
               <div className="space-y-3">
                 <label htmlFor="item" className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
@@ -314,7 +322,7 @@ export default function TelegramMiniApp() {
                     className="border-border bg-secondary resize-none text-base"
                 />
               </div>
-            </form>
+            </div>
           </Card>
 
           <div className="mt-6 text-center text-xs text-muted-foreground">Используй кнопку внизу для отправки заказа</div>
