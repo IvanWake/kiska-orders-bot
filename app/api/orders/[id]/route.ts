@@ -20,9 +20,9 @@ async function connectToDatabase() {
   return client
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params
+    const { id } = params
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 })
@@ -43,9 +43,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params
+    const { id } = params
     const body = await request.json()
     const { status } = body
 
@@ -69,30 +69,55 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (result.telegramUserId) {
+      console.log("[v0] Sending status update notification to user:", result.telegramUserId)
       const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
       if (TELEGRAM_BOT_TOKEN) {
         const statusEmoji = status === "ordered" ? "📦" : status === "in_progress" ? "🚀" : "✅"
         const statusText = status === "ordered" ? "Заказано" : status === "in_progress" ? "В процессе" : "Доставлено"
 
+        const appUrl = process.env.NEXT_PUBLIC_URL || request.nextUrl.origin
         const message =
-          `${statusEmoji} <b>Обновление статуса заказа!</b>\n\n` +
-          `Статус: <b>${statusText}</b>\n\n` +
-          `<a href="${process.env.NEXT_PUBLIC_URL || request.nextUrl.origin}/orders/${id}">Посмотреть заказ</a>`
+          `💕 ${statusEmoji} <b>Обновление статуса заказа!</b>\n\n` +
+          `Статус изменен на: <b>${statusText}</b>\n\n` +
+          `Нажми на кнопку ниже чтобы посмотреть детали заказа 💖`
 
         try {
-          await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chat_id: result.telegramUserId,
               text: message,
               parse_mode: "HTML",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "🎀 Открыть заказ",
+                      web_app: { url: `${appUrl}/tg/orders/${id}` },
+                    },
+                  ],
+                ],
+              },
             }),
           })
+
+          const responseData = await response.json()
+          console.log("[v0] Telegram notification response:", responseData)
+
+          if (!response.ok) {
+            console.error("[v0] Failed to send telegram notification:", responseData)
+          } else {
+            console.log("[v0] Notification sent successfully")
+          }
         } catch (telegramError) {
-          console.error("Failed to send telegram notification:", telegramError)
+          console.error("[v0] Failed to send telegram notification:", telegramError)
         }
+      } else {
+        console.log("[v0] TELEGRAM_BOT_TOKEN not found")
       }
+    } else {
+      console.log("[v0] No telegramUserId found for order:", id)
     }
 
     return NextResponse.json(result)
@@ -102,9 +127,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params
+    const { id } = params
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 })

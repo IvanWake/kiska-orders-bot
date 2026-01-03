@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
             order.userId,
             `${statusEmoji} <b>Обновление статуса заказа!</b>\n\n` +
               `Статус: <b>${statusText}</b>\n\n` +
-              `<a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/orders/${orderId}">Посмотреть заказ</a>`,
+              `<a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/tg/orders/${orderId}">Посмотреть заказ</a>`,
           )
         }
 
@@ -110,226 +110,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    if (text.startsWith("/")) {
-      if (text === "/start") {
-        await sendTelegramMessage(
-          chatId,
-          `🎀 <b>Привет! Добро пожаловать в Wishlist App!</b>\n\n` +
-            `💕 Это приложение для заказа вкусняшек\n\n` +
-            `<b>Команды:</b>\n` +
-            `/new - Создать новый заказ\n` +
-            `/orders - Мои заказы\n` +
-            `/help - Помощь` +
-            (userId === ADMIN_TELEGRAM_ID ? `\n\n👑 <b>Админ команды:</b>\n/admin - Все заказы` : ""),
-        )
-        return NextResponse.json({ ok: true })
-      }
+    const miniAppUrl = `${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/tg`
 
-      if (text === "/new") {
-        await setUserState(userId, { action: "create_order", items: [], step: "add_items" })
-        await sendTelegramMessage(
-          chatId,
-          `🍰 <b>Создание нового заказа</b>\n\n` +
-            `Отправь мне название вкусняшки, которую хочешь заказать.\n\n` +
-            `Когда закончишь добавлять - отправь /done`,
-        )
-        return NextResponse.json({ ok: true })
-      }
-
-      if (text === "/done") {
-        const state = await getUserState(userId)
-        if (state?.action === "create_order" && state.items?.length > 0) {
-          await setUserState(userId, { ...state, step: "add_comment" })
-          await sendTelegramMessage(
-            chatId,
-            `💬 <b>Добавь комментарий к заказу</b>\n\n` + `Или отправь /skip чтобы пропустить`,
-          )
-        } else {
-          await sendTelegramMessage(chatId, `❌ Сначала добавь хотя бы одну вкусняшку!`)
-        }
-        return NextResponse.json({ ok: true })
-      }
-
-      if (text === "/skip") {
-        const state = await getUserState(userId)
-        if (state?.action === "create_order" && state.step === "add_comment") {
-          // Create order without comment
-          const client = await connectToDatabase()
-          const db = client.db(DB_NAME)
-
-          const newOrder = {
-            items: state.items,
-            comment: "",
-            status: "ordered",
-            createdAt: new Date().toISOString(),
-            userId: userId,
-          }
-
-          const result = await db.collection(COLLECTION_NAME).insertOne(newOrder)
-          const orderId = result.insertedId.toString()
-
-          await clearUserState(userId)
-
-          // Send to admin
-          if (ADMIN_TELEGRAM_ID) {
-            const itemsList = state.items.map((item: string, i: number) => `${i + 1}. ${item}`).join("\n")
-            await sendTelegramMessage(
-              ADMIN_TELEGRAM_ID,
-              `🎀 <b>Новый заказ!</b>\n\n` +
-                `📝 Список:\n${itemsList}\n\n` +
-                `<a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/orders/${orderId}">Посмотреть заказ</a>`,
-              "HTML",
-              {
-                inline_keyboard: [
-                  [
-                    { text: "📦 Заказано", callback_data: `status_${orderId}_ordered` },
-                    { text: "🚀 В процессе", callback_data: `status_${orderId}_in_progress` },
-                  ],
-                  [{ text: "✅ Доставлено", callback_data: `status_${orderId}_delivered` }],
-                ],
-              },
-            )
-          }
-
-          await sendTelegramMessage(
-            chatId,
-            `✅ <b>Заказ создан!</b>\n\n` +
-              `<a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/orders/${orderId}">Посмотреть заказ</a>`,
-          )
-        }
-        return NextResponse.json({ ok: true })
-      }
-
-      if (text === "/cancel") {
-        await clearUserState(userId)
-        await sendTelegramMessage(chatId, `❌ Действие отменено`)
-        return NextResponse.json({ ok: true })
-      }
-
-      if (text === "/orders") {
-        const client = await connectToDatabase()
-        const db = client.db(DB_NAME)
-        const orders = await db.collection(COLLECTION_NAME).find({ userId }).sort({ createdAt: -1 }).toArray()
-
-        if (orders.length === 0) {
-          await sendTelegramMessage(chatId, `📭 У тебя пока нет заказов`)
-          return NextResponse.json({ ok: true })
-        }
-
-        const ordersList = orders
-          .map((order: any) => {
-            const statusEmoji = order.status === "ordered" ? "📦" : order.status === "in_progress" ? "🚀" : "✅"
-            const date = new Date(order.createdAt).toLocaleDateString("ru-RU")
-            return `${statusEmoji} <a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/orders/${order._id}">${date}</a>`
-          })
-          .join("\n")
-
-        await sendTelegramMessage(chatId, `📋 <b>Твои заказы:</b>\n\n${ordersList}`)
-        return NextResponse.json({ ok: true })
-      }
-
-      if (text === "/admin" && userId === ADMIN_TELEGRAM_ID) {
-        const client = await connectToDatabase()
-        const db = client.db(DB_NAME)
-        const orders = await db.collection(COLLECTION_NAME).find({}).sort({ createdAt: -1 }).limit(10).toArray()
-
-        if (orders.length === 0) {
-          await sendTelegramMessage(chatId, `📭 Заказов пока нет`)
-          return NextResponse.json({ ok: true })
-        }
-
-        const ordersList = orders
-          .map((order: any) => {
-            const statusEmoji = order.status === "ordered" ? "📦" : order.status === "in_progress" ? "🚀" : "✅"
-            const date = new Date(order.createdAt).toLocaleDateString("ru-RU")
-            const items = order.items.slice(0, 2).join(", ") + (order.items.length > 2 ? "..." : "")
-            return `${statusEmoji} ${date}: ${items}\n<a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/orders/${order._id}">Открыть</a>`
-          })
-          .join("\n\n")
-
-        await sendTelegramMessage(chatId, `👑 <b>Все заказы (последние 10):</b>\n\n${ordersList}`)
-        return NextResponse.json({ ok: true })
-      }
-
-      if (text === "/help") {
-        await sendTelegramMessage(
-          chatId,
-          `💕 <b>Помощь по боту</b>\n\n` +
-            `<b>Основные команды:</b>\n` +
-            `/new - Создать новый заказ\n` +
-            `/orders - Посмотреть свои заказы\n` +
-            `/cancel - Отменить текущее действие\n` +
-            `/help - Показать эту справку`,
-        )
-        return NextResponse.json({ ok: true })
-      }
-
-      return NextResponse.json({ ok: true })
-    }
-
-    const state = await getUserState(userId)
-
-    if (state?.action === "create_order") {
-      if (state.step === "add_items") {
-        const items = state.items || []
-        items.push(text)
-        await setUserState(userId, { ...state, items })
-
-        await sendTelegramMessage(
-          chatId,
-          `✅ Добавлено: <b>${text}</b>\n\n` +
-            `Всего в списке: ${items.length}\n\n` +
-            `Добавляй еще или отправь /done когда закончишь`,
-        )
-      } else if (state.step === "add_comment") {
-        // Create order with comment
-        const client = await connectToDatabase()
-        const db = client.db(DB_NAME)
-
-        const newOrder = {
-          items: state.items,
-          comment: text,
-          status: "ordered",
-          createdAt: new Date().toISOString(),
-          userId: userId,
-        }
-
-        const result = await db.collection(COLLECTION_NAME).insertOne(newOrder)
-        const orderId = result.insertedId.toString()
-
-        await clearUserState(userId)
-
-        // Send to admin
-        if (ADMIN_TELEGRAM_ID) {
-          const itemsList = state.items.map((item: string, i: number) => `${i + 1}. ${item}`).join("\n")
-          await sendTelegramMessage(
-            ADMIN_TELEGRAM_ID,
-            `🎀 <b>Новый заказ!</b>\n\n` +
-              `📝 Список:\n${itemsList}\n\n` +
-              `💬 Комментарий: ${text}\n\n` +
-              `<a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/orders/${orderId}">Посмотреть заказ</a>`,
-            "HTML",
+    await sendTelegramMessage(
+      chatId,
+      `🎀 <b>Привет! Добро пожаловать в Wishlist App!</b>\n\n` +
+        `💕 Это приложение для заказа вкусняшек\n\n` +
+        `Нажми на кнопку ниже чтобы открыть приложение:`,
+      "HTML",
+      {
+        inline_keyboard: [
+          [
             {
-              inline_keyboard: [
-                [
-                  { text: "📦 Заказано", callback_data: `status_${orderId}_ordered` },
-                  { text: "🚀 В процессе", callback_data: `status_${orderId}_in_progress` },
-                ],
-                [{ text: "✅ Доставлено", callback_data: `status_${orderId}_delivered` }],
-              ],
+              text: "🎀 Открыть приложение",
+              web_app: { url: miniAppUrl },
             },
-          )
-        }
-
-        await sendTelegramMessage(
-          chatId,
-          `✅ <b>Заказ создан!</b>\n\n` +
-            `<a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/orders/${orderId}">Посмотреть заказ</a>`,
-        )
-      }
-    } else {
-      await sendTelegramMessage(chatId, `👋 Привет! Используй /start чтобы начать или /help для помощи`)
-    }
+          ],
+        ],
+      },
+    )
 
     return NextResponse.json({ ok: true })
   } catch (error) {
