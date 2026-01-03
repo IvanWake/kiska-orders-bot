@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Виш-лист | Список желаний",
+  title: "Хочу вкусняшек",
   description: "Создавайте и управляйте вашими желаниями",
   generator: "v0.app",
   icons: {
