@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { MongoClient, ObjectId } from "mongodb"
 
 const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://Vercel-Admin-support-applocation:OqTExNvBbS2PZQVl@support-applocation.3tzo10r.mongodb.net/?retryWrites=true&w=majority"
+    process.env.MONGODB_URI ||
+    "mongodb+srv://Vercel-Admin-support-applocation:OqTExNvBbS2PZQVl@support-applocation.3tzo10r.mongodb.net/?retryWrites=true&w=majority"
 const DB_NAME = "wishlist"
 const COLLECTION_NAME = "orders"
 const USERS_COLLECTION = "telegram_users"
@@ -78,7 +78,9 @@ export async function POST(request: NextRequest) {
       const callbackChatId = callbackQuery.message.chat.id.toString()
 
       if (data.startsWith("status_")) {
-        const [, orderId, newStatus] = data.split("_")
+        const parts = data.split("_")
+        const orderId = parts[1]
+        const newStatus = parts.slice(2).join("_") // объединяем обратно части после orderId (in_progress)
 
         console.log("[v0] Updating order status:", orderId, "to", newStatus)
 
@@ -86,26 +88,26 @@ export async function POST(request: NextRequest) {
         const db = client.db(DB_NAME)
 
         const order = await db
-          .collection(COLLECTION_NAME)
-          .findOneAndUpdate(
-            { _id: new ObjectId(orderId) },
-            { $set: { status: newStatus } },
-            { returnDocument: "after" },
-          )
+            .collection(COLLECTION_NAME)
+            .findOneAndUpdate(
+                { _id: new ObjectId(orderId) },
+                { $set: { status: newStatus } },
+                { returnDocument: "after" },
+            )
 
         console.log("[v0] Order updated:", order)
 
         if (order && order.telegramUserId) {
           console.log("[v0] Sending status update to user:", order.telegramUserId)
-          const statusEmoji = newStatus === "ordered" ? "📦" : newStatus === "inProgress" ? "🚀" : "✅"
+          const statusEmoji = newStatus === "ordered" ? "📦" : newStatus === "in_progress" ? "🚀" : "✅"
           const statusText =
-            newStatus === "ordered" ? "Заказано" : newStatus === "inProgress" ? "В процессе" : "Доставлено"
+              newStatus === "ordered" ? "Заказано" : newStatus === "in_progress" ? "В процессе" : "Доставлено"
 
           const appUrl = process.env.NEXT_PUBLIC_URL || request.nextUrl.origin
           const notificationText =
-            `💕 ${statusEmoji} <b>Обновление статуса заказа!</b>\n\n` +
-            `Статус изменен на: <b>${statusText}</b>\n\n` +
-            `Нажми на кнопку ниже чтобы посмотреть детали заказа 💖`
+              `💕 ${statusEmoji} <b>Обновление статуса заказа!</b>\n\n` +
+              `Статус изменен на: <b>${statusText}</b>\n\n` +
+              `Нажми на кнопку ниже чтобы посмотреть детали заказа 💖`
 
           try {
             await sendTelegramMessage(order.telegramUserId.toString(), notificationText, "HTML", {
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
         }
 
         const statusText =
-          newStatus === "ordered" ? "Заказано 📦" : newStatus === "inProgress" ? "В процессе 🚀" : "Доставлено ✅"
+            newStatus === "ordered" ? "Заказано 📦" : newStatus === "in_progress" ? "В процессе 🚀" : "Доставлено ✅"
         await sendTelegramMessage(callbackChatId, `✅ Статус обновлен на: ${statusText}`)
       }
 
@@ -137,21 +139,21 @@ export async function POST(request: NextRequest) {
     const miniAppUrl = `${process.env.NEXT_PUBLIC_URL || request.nextUrl.origin}/tg`
 
     await sendTelegramMessage(
-      chatId,
-      `🎀 <b>Привет! Добро пожаловать в Wishlist App!</b>\n\n` +
+        chatId,
+        `🎀 <b>Привет! Добро пожаловать в Wishlist App!</b>\n\n` +
         `💕 Это приложение для заказа вкусняшек\n\n` +
         `Нажми на кнопку ниже чтобы открыть приложение:`,
-      "HTML",
-      {
-        inline_keyboard: [
-          [
-            {
-              text: "🎀 Открыть приложение",
-              web_app: { url: miniAppUrl },
-            },
+        "HTML",
+        {
+          inline_keyboard: [
+            [
+              {
+                text: "🎀 Открыть приложение",
+                web_app: { url: miniAppUrl },
+              },
+            ],
           ],
-        ],
-      },
+        },
     )
 
     return NextResponse.json({ ok: true })
