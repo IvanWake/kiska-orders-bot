@@ -60,22 +60,22 @@ export async function POST(request: NextRequest) {
     const result = await db.collection(COLLECTION_NAME).insertOne(newOrder)
     const orderId = result.insertedId.toString()
 
-    const orderUrl = `${request.nextUrl.origin}/orders/${orderId}`
+    const orderUrl = `${request.nextUrl.origin}/tg/orders/${orderId}`
 
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
     const ADMIN_TELEGRAM_ID = process.env.ADMIN_TELEGRAM_ID
 
     if (TELEGRAM_BOT_TOKEN && ADMIN_TELEGRAM_ID) {
+      console.log("[v0] Sending notification to admin:", ADMIN_TELEGRAM_ID)
       try {
         const itemsList = items.map((item: string, i: number) => `${i + 1}. ${item}`).join("\n")
         const message =
           `🎀 <b>Новый заказ вкусняшек!</b>\n\n` +
           `📝 Список:\n${itemsList}\n\n` +
           (comment ? `💬 Комментарий: ${comment}\n\n` : "") +
-          (telegramUsername ? `👤 От: @${telegramUsername}\n\n` : "") +
-          `<a href="${orderUrl}">Посмотреть заказ</a>`
+          (telegramUsername ? `👤 От: @${telegramUsername}\n\n` : "")
 
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -89,13 +89,23 @@ export async function POST(request: NextRequest) {
                   { text: "🚀 В процессе", callback_data: `status_${orderId}_in_progress` },
                 ],
                 [{ text: "✅ Доставлено", callback_data: `status_${orderId}_delivered` }],
+                [
+                  {
+                    text: "🎀 Открыть заказ",
+                    web_app: { url: orderUrl },
+                  },
+                ],
               ],
             },
           }),
         })
+        const responseData = await response.json()
+        console.log("[v0] Admin notification response:", responseData)
       } catch (telegramError) {
-        console.error("Failed to send Telegram notification:", telegramError)
+        console.error("[v0] Failed to send Telegram notification:", telegramError)
       }
+    } else {
+      console.log("[v0] Missing TELEGRAM_BOT_TOKEN or ADMIN_TELEGRAM_ID")
     }
 
     // Send email notification

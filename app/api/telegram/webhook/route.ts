@@ -80,6 +80,8 @@ export async function POST(request: NextRequest) {
       if (data.startsWith("status_")) {
         const [, orderId, newStatus] = data.split("_")
 
+        console.log("[v0] Updating order status:", orderId, "to", newStatus)
+
         const client = await connectToDatabase()
         const db = client.db(DB_NAME)
 
@@ -91,17 +93,37 @@ export async function POST(request: NextRequest) {
             { returnDocument: "after" },
           )
 
-        if (order && order.userId) {
+        console.log("[v0] Order updated:", order)
+
+        if (order && order.telegramUserId) {
+          console.log("[v0] Sending status update to user:", order.telegramUserId)
           const statusEmoji = newStatus === "ordered" ? "📦" : newStatus === "in_progress" ? "🚀" : "✅"
           const statusText =
             newStatus === "ordered" ? "Заказано" : newStatus === "in_progress" ? "В процессе" : "Доставлено"
 
-          await sendTelegramMessage(
-            order.userId,
-            `${statusEmoji} <b>Обновление статуса заказа!</b>\n\n` +
-              `Статус: <b>${statusText}</b>\n\n` +
-              `<a href="${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/tg/orders/${orderId}">Посмотреть заказ</a>`,
-          )
+          const appUrl = process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"
+          const notificationText =
+            `💕 ${statusEmoji} <b>Обновление статуса заказа!</b>\n\n` +
+            `Статус изменен на: <b>${statusText}</b>\n\n` +
+            `Нажми на кнопку ниже чтобы посмотреть детали заказа 💖`
+
+          try {
+            const response = await sendTelegramMessage(order.telegramUserId, notificationText, "HTML", {
+              inline_keyboard: [
+                [
+                  {
+                    text: "🎀 Открыть заказ",
+                    web_app: { url: `${appUrl}/tg/orders/${orderId}` },
+                  },
+                ],
+              ],
+            })
+            console.log("[v0] User notification sent successfully")
+          } catch (error) {
+            console.error("[v0] Failed to send user notification:", error)
+          }
+        } else {
+          console.log("[v0] No telegramUserId found in order")
         }
 
         await sendTelegramMessage(callbackChatId, `✅ Статус обновлен на: ${newStatus}`)
