@@ -101,14 +101,14 @@ export async function POST(request: NextRequest) {
           const statusText =
             newStatus === "ordered" ? "Заказано" : newStatus === "in_progress" ? "В процессе" : "Доставлено"
 
-          const appUrl = process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"
+          const appUrl = process.env.NEXT_PUBLIC_URL || request.nextUrl.origin
           const notificationText =
             `💕 ${statusEmoji} <b>Обновление статуса заказа!</b>\n\n` +
             `Статус изменен на: <b>${statusText}</b>\n\n` +
             `Нажми на кнопку ниже чтобы посмотреть детали заказа 💖`
 
           try {
-            const response = await sendTelegramMessage(order.telegramUserId, notificationText, "HTML", {
+            await sendTelegramMessage(order.telegramUserId.toString(), notificationText, "HTML", {
               inline_keyboard: [
                 [
                   {
@@ -126,13 +126,15 @@ export async function POST(request: NextRequest) {
           console.log("[v0] No telegramUserId found in order")
         }
 
-        await sendTelegramMessage(callbackChatId, `✅ Статус обновлен на: ${newStatus}`)
+        const statusText =
+          newStatus === "ordered" ? "Заказано 📦" : newStatus === "in_progress" ? "В процессе 🚀" : "Доставлено ✅"
+        await sendTelegramMessage(callbackChatId, `✅ Статус обновлен на: ${statusText}`)
       }
 
       return NextResponse.json({ ok: true })
     }
 
-    const miniAppUrl = `${process.env.NEXT_PUBLIC_URL || "https://your-app.vercel.app"}/tg`
+    const miniAppUrl = `${process.env.NEXT_PUBLIC_URL || request.nextUrl.origin}/tg`
 
     await sendTelegramMessage(
       chatId,

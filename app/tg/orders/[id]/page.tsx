@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
-import { Loader2, Sparkles } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Loader2, Sparkles, Trash2 } from "lucide-react"
 import { use } from "react"
 import Image from "next/image"
 
@@ -32,12 +33,21 @@ export default function TelegramOrderPage({ params }: { params: Promise<{ id: st
   const resolvedParams = use(params)
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp
       tg.ready()
       tg.expand()
+
+      if (tg.initDataUnsafe?.user) {
+        const adminId = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID
+        if (adminId && tg.initDataUnsafe.user.id.toString() === adminId) {
+          setIsAdmin(true)
+        }
+      }
 
       tg.BackButton.show()
       tg.BackButton.onClick(() => {
@@ -62,6 +72,32 @@ export default function TelegramOrderPage({ params }: { params: Promise<{ id: st
       setOrder(null)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm("Вы уверены, что хотите удалить этот заказ?")) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/orders/${resolvedParams.id}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.close()
+        } else {
+          window.location.href = "/tg/orders"
+        }
+      } else {
+        alert("Не удалось удалить заказ")
+      }
+    } catch (error) {
+      console.error("Failed to delete order:", error)
+      alert("Не удалось удалить заказ")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -151,6 +187,24 @@ export default function TelegramOrderPage({ params }: { params: Promise<{ id: st
                 <p className="text-foreground font-mono text-xs break-all">{order._id}</p>
               </div>
             </div>
+
+            {isAdmin && (
+              <div className="pt-4 border-t border-border">
+                <Button onClick={handleDelete} disabled={isDeleting} variant="destructive" className="w-full" size="lg">
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Удаление...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Удалить заказ
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </Card>
       </div>

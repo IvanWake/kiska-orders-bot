@@ -173,6 +173,18 @@ export default function TelegramMiniApp() {
           {tgUser && <p className="text-sm text-primary mt-2">Привет, {tgUser.first_name}! 💕</p>}
         </div>
 
+        <div className="mb-4">
+          <a href="/tg/orders">
+            <Button
+              variant="outline"
+              className="w-full border-primary/30 hover:border-primary hover:bg-primary/10 bg-transparent"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Все заказы
+            </Button>
+          </a>
+        </div>
+
         <Card className="p-4 border-border bg-card/80 backdrop-blur-sm shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-3">
