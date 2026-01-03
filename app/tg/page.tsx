@@ -60,6 +60,12 @@ export default function TelegramMiniApp() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [tgUser, setTgUser] = useState<any>(null)
 
+  const orderDataRef = { current: { items: [], comment: "" } }
+
+  useEffect(() => {
+    orderDataRef.current = { items, comment }
+  }, [items, comment])
+
   useEffect(() => {
     // Initialize Telegram Web App
     if (window.Telegram?.WebApp) {
@@ -75,27 +81,59 @@ export default function TelegramMiniApp() {
       // Configure Main Button
       tg.MainButton.setText("Отправить заказ")
       tg.MainButton.hide()
+
+      const handleMainButtonClick = async () => {
+        const { items: currentItems, comment: currentComment } = orderDataRef.current
+
+        if (currentItems.length === 0) return
+
+        setIsSubmitting(true)
+        tg.MainButton.showProgress()
+
+        try {
+          const orderData = {
+            items: currentItems,
+            comment: currentComment,
+            telegramUserId: tg.initDataUnsafe?.user?.id,
+            telegramUsername: tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name,
+          }
+
+          const response = await fetch("/api/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(orderData),
+          })
+
+          if (response.ok) {
+            setItems([])
+            setComment("")
+            tg.close()
+          }
+        } catch (error) {
+          console.error("Failed to create order:", error)
+        } finally {
+          setIsSubmitting(false)
+          tg.MainButton.hideProgress()
+        }
+      }
+
+      tg.MainButton.onClick(handleMainButtonClick)
     }
   }, [])
 
   useEffect(() => {
-    // Update Main Button state
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp
-
-      // Удаляем старый обработчик если он есть
-      tg.MainButton.onClick(() => {})
 
       if (items.length > 0) {
         tg.MainButton.setText(`Отправить заказ (${items.length})`)
         tg.MainButton.show()
         tg.MainButton.enable()
-        tg.MainButton.onClick(handleSubmitViaTelegram)
       } else {
         tg.MainButton.hide()
       }
     }
-  }, [items, comment])
+  }, [items])
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,7 +148,8 @@ export default function TelegramMiniApp() {
   }
 
   const handleSubmitViaTelegram = async () => {
-    if (items.length === 0) return
+    const { items: currentItems, comment: currentComment } = orderDataRef.current
+    if (currentItems.length === 0) return
 
     setIsSubmitting(true)
     if (window.Telegram?.WebApp) {
@@ -119,15 +158,15 @@ export default function TelegramMiniApp() {
 
     try {
       const orderData = {
-        items,
-        comment,
+        items: currentItems,
+        comment: currentComment,
         telegramUserId: tgUser?.id,
         telegramUsername: tgUser?.username || tgUser?.first_name,
       }
 
       console.log("[v0] Sending order data:", orderData)
-      console.log("[v0] Comment value:", comment)
-      console.log("[v0] Comment length:", comment.length)
+      console.log("[v0] Comment value:", currentComment)
+      console.log("[v0] Comment length:", currentComment.length)
 
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -157,6 +196,10 @@ export default function TelegramMiniApp() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const { items: currentItems, comment: currentComment } = orderDataRef.current
+    if (currentItems.length === 0) return
+
+    // Вызываем ту же логику что и в MainButton
     handleSubmitViaTelegram()
   }
 
