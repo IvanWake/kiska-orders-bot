@@ -76,13 +76,13 @@ export default function HomePage() {
           </h1>
 
           <p className="text-lg sm:text-xl text-muted-foreground text-pretty mb-8 px-4">
-            Это приложение работает только в Telegram
+            Это приложение работает только в <a href="https://t.me/hochuvkusnyashek_bot">Telegram</a>
           </p>
 
           <div className="space-y-4 text-left max-w-md mx-auto">
             <div className="p-4 bg-secondary rounded-lg border border-border">
               <p className="text-sm text-foreground">
-                <span className="font-semibold text-primary">Шаг 1:</span> Найдите бота в Telegram
+                <span className="font-semibold text-primary">Шаг 1:</span> Найдите бота в <a href="https://t.me/hochuvkusnyashek_bot">Telegram</a>
               </p>
             </div>
 
