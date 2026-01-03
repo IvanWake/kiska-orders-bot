@@ -82,6 +82,10 @@ export default function TelegramMiniApp() {
     // Update Main Button state
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp
+
+      // Удаляем старый обработчик если он есть
+      tg.MainButton.onClick(() => {})
+
       if (items.length > 0) {
         tg.MainButton.setText(`Отправить заказ (${items.length})`)
         tg.MainButton.show()
@@ -91,7 +95,7 @@ export default function TelegramMiniApp() {
         tg.MainButton.hide()
       }
     }
-  }, [items])
+  }, [items, comment])
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault()
