@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
               inline_keyboard: [
                 [
                   { text: "📦 Заказано", callback_data: `status_${orderId}_ordered` },
-                  { text: "🚀 В процессе", callback_data: `status_${orderId}_in_progress` },
+                  { text: "🚀 В процессе", callback_data: `status_${orderId}_inProgress` },
                 ],
                 [{ text: "✅ Доставлено", callback_data: `status_${orderId}_delivered` }],
                 [

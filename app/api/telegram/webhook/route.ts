@@ -97,9 +97,9 @@ export async function POST(request: NextRequest) {
 
         if (order && order.telegramUserId) {
           console.log("[v0] Sending status update to user:", order.telegramUserId)
-          const statusEmoji = newStatus === "ordered" ? "📦" : newStatus === "in_progress" ? "🚀" : "✅"
+          const statusEmoji = newStatus === "ordered" ? "📦" : newStatus === "inProgress" ? "🚀" : "✅"
           const statusText =
-            newStatus === "ordered" ? "Заказано" : newStatus === "in_progress" ? "В процессе" : "Доставлено"
+            newStatus === "ordered" ? "Заказано" : newStatus === "inProgress" ? "В процессе" : "Доставлено"
 
           const appUrl = process.env.NEXT_PUBLIC_URL || request.nextUrl.origin
           const notificationText =
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         }
 
         const statusText =
-          newStatus === "ordered" ? "Заказано 📦" : newStatus === "in_progress" ? "В процессе 🚀" : "Доставлено ✅"
+          newStatus === "ordered" ? "Заказано 📦" : newStatus === "inProgress" ? "В процессе 🚀" : "Доставлено ✅"
         await sendTelegramMessage(callbackChatId, `✅ Статус обновлен на: ${statusText}`)
       }
 
