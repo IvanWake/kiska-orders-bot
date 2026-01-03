@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { MongoClient } from "mongodb"
 
 const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://Vercel-Admin-support-applocation:OqTExNvBbS2PZQVl@support-applocation.3tzo10r.mongodb.net/?retryWrites=true&w=majority"
+    process.env.MONGODB_URI ||
+    "mongodb+srv://Vercel-Admin-support-applocation:OqTExNvBbS2PZQVl@support-applocation.3tzo10r.mongodb.net/?retryWrites=true&w=majority"
 const DB_NAME = "wishlist"
 const COLLECTION_NAME = "orders"
 const NOTIFICATION_EMAIL = "support@tagmate.ru"
@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { items, comment, telegramUserId, telegramUsername } = body
 
+    console.log("[v0] Order data received:", { items, comment, telegramUserId, telegramUsername })
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Items array is required" }, { status: 400 })
     }
@@ -69,11 +71,16 @@ export async function POST(request: NextRequest) {
       console.log("[v0] Sending notification to admin:", ADMIN_TELEGRAM_ID)
       try {
         const itemsList = items.map((item: string, i: number) => `${i + 1}. ${item}`).join("\n")
+
+        const commentText = comment && comment.trim() ? `💬 Комментарий: ${comment}\n\n` : "💬 Комментарий: нет\n\n"
+
         const message =
-          `🎀 <b>Новый заказ вкусняшек!</b>\n\n` +
-          `📝 Список:\n${itemsList}\n\n` +
-          (comment ? `💬 Комментарий: ${comment}\n\n` : "") +
-          (telegramUsername ? `👤 От: @${telegramUsername}\n\n` : "")
+            `🎀 <b>Новый заказ вкусняшек!</b>\n\n` +
+            `📝 Список:\n${itemsList}\n\n` +
+            commentText +
+            (telegramUsername ? `👤 От: @${telegramUsername}\n\n` : "")
+
+        console.log("[v0] Telegram message to send:", message)
 
         const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: "POST",
@@ -232,7 +239,7 @@ export async function POST(request: NextRequest) {
         <h3>📝 Список желаний:</h3>
         ${items
           .map(
-            (item: string, index: number) => `
+              (item: string, index: number) => `
           <div class="item">
             <span class="item-number">${index + 1}</span>
             <span>${item}</span>
@@ -243,14 +250,14 @@ export async function POST(request: NextRequest) {
       </div>
       
       ${
-        comment
-          ? `
+          comment
+              ? `
         <div class="comment">
           <strong>💬 Комментарий:</strong><br>
           ${comment}
         </div>
       `
-          : ""
+              : ""
       }
       
       <p class="date">🕐 Дата заказа: ${new Date().toLocaleString("ru-RU", {
