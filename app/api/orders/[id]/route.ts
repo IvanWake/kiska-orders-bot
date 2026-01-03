@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 })
     }
 
-    if (!status || !["ordered", "inProgress", "delivered"].includes(status)) {
+    if (!status || !["ordered", "in_progress", "delivered"].includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 })
     }
 
@@ -72,8 +72,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       console.log("[v0] Sending status update notification to user:", result.telegramUserId)
       const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
       if (TELEGRAM_BOT_TOKEN) {
-        const statusEmoji = status === "ordered" ? "📦" : status === "inProgress" ? "🚀" : "✅"
-        const statusText = status === "ordered" ? "Заказано" : status === "inProgress" ? "В процессе" : "Доставлено"
+        const statusEmoji = status === "ordered" ? "📦" : status === "in_progress" ? "🚀" : "✅"
+        const statusText = status === "ordered" ? "Заказано" : status === "in_progress" ? "В процессе" : "Доставлено"
 
         const appUrl = process.env.NEXT_PUBLIC_URL || request.nextUrl.origin
         const message =

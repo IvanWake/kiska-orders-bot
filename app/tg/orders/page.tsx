@@ -10,7 +10,7 @@ interface Order {
   _id: string
   items: string[]
   comment?: string
-  status: "ordered" | "inProgress" | "delivered"
+  status: "ordered" | "in_progress" | "delivered"
   createdAt: string
   telegramUserId?: number
   telegramUsername?: string

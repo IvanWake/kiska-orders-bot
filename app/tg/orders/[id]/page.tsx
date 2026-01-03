@@ -11,7 +11,7 @@ interface Order {
   _id: string
   items: string[]
   comment?: string
-  status: "ordered" | "inProgress" | "delivered"
+  status: "ordered" | "in_progress" | "delivered"
   createdAt: string
   telegramUserId?: number
   telegramUsername?: string
@@ -19,13 +19,13 @@ interface Order {
 
 const statusLabels = {
   ordered: "Заказано",
-  inProgress: "В процессе",
+  in_progress: "В процессе",
   delivered: "Доставлено",
 }
 
 const statusColors = {
   ordered: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
-  inProgress: "bg-blue-500/20 text-blue-500 border-blue-500/30",
+  in_progress: "bg-blue-500/20 text-blue-500 border-blue-500/30",
   delivered: "bg-green-500/20 text-green-500 border-green-500/30",
 }
 
