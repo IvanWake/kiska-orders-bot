@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     await sendTelegramMessage(
       chatId,
-      `🎀 <b>Привет Киска!</b>\n\n` +
+      `🎀 <b>Привет Киска Котенковна!</b>\n\n` +
         `💕 Это приложение для заказа вкусняшек\n\n` +
         `Нажми на кнопку ниже чтобы открыть приложение:`,
       "HTML",
